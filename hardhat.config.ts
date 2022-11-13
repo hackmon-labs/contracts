@@ -12,6 +12,7 @@ const config: HardhatUserConfig = {
     mumbai: {
       url: process.env.MUMBAI_URL,
       accounts: accounts,
+      etherscan: { apiKey: process.env.API_KEY_POLYGONSCAN },
     },
   },
 

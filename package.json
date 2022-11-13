@@ -1,8 +1,10 @@
 {
-  "name": "hardhat-project",
+  "name": "hackmon-xyz-contracts",
   "scripts": {
     "compile": "hardhat compile",
-    "deploy": "hardhat deploy"
+    "deploy": "hardhat deploy",
+    "deploy:mumbai:vrfMint": "hardhat deploy --network mumbai --tags vrfMint",
+    "verify:mumbai": "hardhat etherscan-verify --network mumbai"
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.7.0",
