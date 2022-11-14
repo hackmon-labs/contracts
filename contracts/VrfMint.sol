@@ -56,6 +56,7 @@ contract VrfMint is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_subscriptionId = subscriptionId;
         _initializeContract(fishTokenUris);
+        s_tokenCounter = 0;
     }
 
     function mint() public returns (uint256 requestId) {

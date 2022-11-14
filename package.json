@@ -3,6 +3,7 @@
   "scripts": {
     "compile": "hardhat compile",
     "deploy": "hardhat deploy",
+    "deploy:mumbai:NftMarketplace": "hardhat deploy --network mumbai --tags NftMarketplace",
     "deploy:mumbai:vrfMint": "hardhat deploy --network mumbai --tags vrfMint",
     "verify:mumbai": "hardhat etherscan-verify --network mumbai"
   },

@@ -1,0 +1,19 @@
+{
+  "name": "Hacker head #1",
+  "description": "hackmon!",
+  "image": "https://bafybeifdairdks7ge3xh4eky24xro5ti4ruy2vk52qrtbaaajznh5sfap4.ipfs.nftstorage.link/a1.png",
+  "attributes": [
+    {
+      "trait_type": "Position",
+      "value": "Head"
+    },
+    {
+      "trait_type": "Attack",
+      "value": 5
+    },
+    {
+      "trait_type": "Hp",
+      "value": 0
+    }
+  ]
+}
