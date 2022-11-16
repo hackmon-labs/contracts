@@ -85,7 +85,7 @@ contract VrfMint is ERC721URIStorage, VRFConsumerBaseV2, Ownable,ChainlinkClient
         // any api
         setChainlinkToken(0x326C977E6efc84E512bB9C30f76E30c160eD06FB);
         setChainlinkOracle(0x40193c8518BB267228Fc409a613bDbD8eC5a97b3);
-        jobId = '7d80a6386ef543a3abb52817f6707e3b';
+        jobId = 'ca98366cc7314957b8c012c72f05aeeb';
         fee = (1 * LINK_DIVISIBILITY) / 10;
     }
 
