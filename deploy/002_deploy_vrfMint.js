@@ -6,7 +6,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     from: deployer,
     log: true,
     args: [
-      '0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed',
+      '0xAE975071Be8F8eE67addBC1A82488F1C24858067',
       2526,
       [
         "https://ipfs.filebase.io/ipfs/QmeZ3Xndo1DTruEGCbenzR381FyaLL8JgwGRKc1nfE3riU/1.json",

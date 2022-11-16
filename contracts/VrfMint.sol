@@ -5,11 +5,14 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import '@chainlink/contracts/src/v0.8/ChainlinkClient.sol';
+import '@chainlink/contracts/src/v0.8/ConfirmedOwner.sol';
+import '@openzeppelin/contracts/utils/Strings.sol';
 
 error AlreadyInitialized();
 error RangeOutOfBounds();
 
-contract VrfMint is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
+contract VrfMint is ERC721URIStorage, VRFConsumerBaseV2, Ownable,ChainlinkClient {
 
     
     // Types
@@ -41,6 +44,24 @@ contract VrfMint is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
     string[] internal s_fishTokenUris;
     bool private s_initialized;
 
+
+    // any api
+    using Chainlink for Chainlink.Request;
+
+    uint256 public volume;
+    // string public btc;
+    // string public usd;
+
+    bytes32 private jobId;
+    uint256 private fee;
+
+    event RequestAmount(bytes32 indexed requestId, uint256 amount);
+    event RequestUrl(string url,address requester);
+
+    mapping(address => uint32) public canMintAmount;
+    mapping(bytes32 => address) public requestParams;
+
+
     // VRF Helpers
     mapping(uint256 => address) public s_requestIdToSender;
 
@@ -48,25 +69,78 @@ contract VrfMint is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
     event NftRequested(uint256 indexed requestId, address requester);
     event NftMinted(Breed breed, address minter);
 
+
+    
+
     constructor(
         address vrfCoordinatorV2,
         uint64 subscriptionId,
         string[10] memory fishTokenUris
-    ) VRFConsumerBaseV2(vrfCoordinatorV2) ERC721("Piexel Flying fish", "PFF") {
+    ) VRFConsumerBaseV2(vrfCoordinatorV2) ERC721("Piexel Flying fish", "PFF")  {
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_subscriptionId = subscriptionId;
         _initializeContract(fishTokenUris);
         s_tokenCounter = 0;
+
+        // any api
+        setChainlinkToken(0x326C977E6efc84E512bB9C30f76E30c160eD06FB);
+        setChainlinkOracle(0x40193c8518BB267228Fc409a613bDbD8eC5a97b3);
+        jobId = '7d80a6386ef543a3abb52817f6707e3b';
+        fee = (1 * LINK_DIVISIBILITY) / 10;
     }
 
-    function mint() public returns (uint256 requestId) {
+
+    function mintAll() public returns (bytes32 requestId) {
+        Chainlink.Request memory req = buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
+
+
+        uint256 value = uint160(msg.sender);
+        bytes memory allBytes = bytes(Strings.toHexString(value, 20));
+
+        string memory newString = string(allBytes);
+
+        string memory url=string(abi.encodePacked('https://ap-jov.colyseus.dev/chain/can-mint-amount?',newString));
+
+        // Set the URL to perform the GET request on
+        req.add('get', url);
+
+
+        req.add('path', 'message,canMint'); // Chainlink nodes 1.0.0 and later support this format
+
+        // Multiply the result by 1000000000000000000 to remove decimals
+        int256 timesAmount = 1;
+        req.addInt('times', timesAmount);
+
+        emit RequestUrl(url,msg.sender);
+
+        // Sends the request
+        // return sendChainlinkRequest(req, fee);
+
+         requestId=sendChainlinkRequest(req, fee);
+        requestParams[requestId]=msg.sender;
+
+    }
+
+    function fulfill(bytes32 _requestId, uint256 _volume) public recordChainlinkFulfillment(_requestId) {
+        emit RequestAmount(_requestId, _volume);
+        // volume = _volume;
+        address requester=requestParams[_requestId];
+        uint32 _amount = uint32(_volume);
+        canMintAmount[requester]=_amount;
+
+        // _mint(_amount);
+    }
+
+    function _mint() public returns (uint256 requestId) {
+        uint32 _amount=canMintAmount[msg.sender];
+
        
         requestId = i_vrfCoordinator.requestRandomWords(
             i_gasLane,
             i_subscriptionId,
             REQUEST_CONFIRMATIONS,
             i_callbackGasLimit,
-            NUM_WORDS
+            _amount
         );
 
         s_requestIdToSender[requestId] = msg.sender;
@@ -75,13 +149,16 @@ contract VrfMint is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
 
     function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal override {
         address fishOwner = s_requestIdToSender[requestId];
-        uint256 newItemId = s_tokenCounter;
-        s_tokenCounter = s_tokenCounter + 1;
-        uint256 moddedRng = randomWords[0] % MAX_CHANCE_VALUE;
-        Breed dogBreed = getBreedFromModdedRng(moddedRng);
-        _safeMint(fishOwner, newItemId);
-        _setTokenURI(newItemId, s_fishTokenUris[uint256(dogBreed)]);
-        emit NftMinted(dogBreed, fishOwner);
+
+        for (uint i = 0; i <= randomWords.length; i++) {
+            uint256 newItemId = s_tokenCounter;
+            s_tokenCounter = s_tokenCounter + 1;
+            uint256 moddedRng = randomWords[i] % MAX_CHANCE_VALUE;
+            Breed dogBreed = getBreedFromModdedRng(moddedRng);
+            _safeMint(fishOwner, newItemId);
+            _setTokenURI(newItemId, s_fishTokenUris[uint256(dogBreed)]);
+            emit NftMinted(dogBreed, fishOwner);
+        }
     }
 
     function getChanceArray() public pure returns (uint256[10] memory) {
@@ -124,5 +201,10 @@ contract VrfMint is ERC721URIStorage, VRFConsumerBaseV2, Ownable {
 
     function getTokenCounter() public view returns (uint256) {
         return s_tokenCounter;
+    }
+
+    function withdrawLink() public onlyOwner {
+        LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
+        require(link.transfer(msg.sender, link.balanceOf(address(this))), 'Unable to transfer');
     }
 }
