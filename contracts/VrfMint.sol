@@ -39,7 +39,7 @@ contract VrfMint is
         HEAD_5,
         HAND_5,
         BODY_5,
-        FOOT_5,
+        FOOT_5
     }
 
     // Chainlink VRF Variables
@@ -64,8 +64,6 @@ contract VrfMint is
     uint256 public val;
     bytes32 private jobId;
     uint256 private fee;
-
-   
 
     mapping(address => uint32) public canMintAmount;
     mapping(bytes32 => address) public requestParams;
@@ -119,7 +117,6 @@ contract VrfMint is
 
         req.add("path", "message,canMint");
 
-       
         int256 timesAmount = 1;
         req.addInt("times", timesAmount);
 
@@ -137,8 +134,6 @@ contract VrfMint is
         address requester = requestParams[_requestId];
         uint32 _amount = uint32(_val);
         canMintAmount[requester] = _amount;
-
-      
     }
 
     function mint() public returns (uint256 requestId) {
@@ -155,8 +150,8 @@ contract VrfMint is
         s_requestIdToSender[requestId] = msg.sender;
         emit NftRequested(requestId, msg.sender);
 
-        canMintAmount[msg.sender]=0
-        emit AmountMint(msg.sender,_amount)
+        canMintAmount[msg.sender] = 0;
+        emit AmountMint(msg.sender, _amount);
     }
 
     function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords)
@@ -177,7 +172,28 @@ contract VrfMint is
     }
 
     function getChanceArray() public pure returns (uint256[20] memory) {
-        return [10,18,22,24,34,42,46,48,58,66,68,70,72,82,90,94,96,97,98,99,MAX_CHANCE_VALUE];
+        return [
+            10,
+            18,
+            22,
+            24,
+            34,
+            42,
+            46,
+            48,
+            58,
+            66,
+            70,
+            72,
+            82,
+            90,
+            94,
+            96,
+            97,
+            98,
+            99,
+            MAX_CHANCE_VALUE
+        ];
     }
 
     function _initializeContract(string[20] memory hackmonTokenUris) private {
