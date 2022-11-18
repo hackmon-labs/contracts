@@ -9,16 +9,20 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
 
-contract AssetValidator is ChainlinkClient, AutomationCompatibleInterface,Ownable {
+contract AssetValidator is
+    ChainlinkClient,
+    AutomationCompatibleInterface,
+    Ownable
+{
     event RequestUrl(string url, uint256 time);
-    event RequestRes(uint256 time,string root);
+    event RequestRes(uint256 time, string root);
     using Chainlink for Chainlink.Request;
 
     string private _url = "https://ap-jov.colyseus.dev/chain/get-root";
     uint256 private fee;
     bytes32 private jobId;
     bytes32 private _root;
-    string public  root;
+    string public root;
     mapping(bytes32 => address) public requestParams;
 
     // update root internal
@@ -36,27 +40,14 @@ contract AssetValidator is ChainlinkClient, AutomationCompatibleInterface,Ownabl
         fee = (1 * LINK_DIVISIBILITY) / 10;
     }
 
-    function stringToBytes32(string memory source) public pure returns (bytes32 result) {
-        bytes memory tempEmptyStringTest = bytes(source);
-        if (tempEmptyStringTest.length == 0) {
-            return 0x0;
-        }
-
-        assembly {
-            result := mload(add(source, 32))
-        }
-    }   
-   
-
     function fulfill(bytes32 _requestId, string memory _val)
         public
         recordChainlinkFulfillment(_requestId)
     {
-        _root =stringToBytes32(_val)  ;
-        root=_val;
+        _root = fromHexToBytes32(_val);
+        root = _val;
         lastTimeStamp = block.timestamp;
-        emit RequestRes(block.timestamp,_val);
-
+        emit RequestRes(block.timestamp, _val);
     }
 
     function checkUpkeep(
@@ -93,7 +84,7 @@ contract AssetValidator is ChainlinkClient, AutomationCompatibleInterface,Ownabl
 
         emit RequestUrl(_url, block.timestamp);
 
-       sendChainlinkRequest(req, fee);
+        sendChainlinkRequest(req, fee);
     }
 
     //
@@ -114,5 +105,40 @@ contract AssetValidator is ChainlinkClient, AutomationCompatibleInterface,Ownabl
             link.transfer(msg.sender, link.balanceOf(address(this))),
             "Unable to transfer"
         );
+    }
+
+    function fromHexChar(uint8 c) public pure returns (uint8) {
+        if (bytes1(c) >= bytes1("0") && bytes1(c) <= bytes1("9")) {
+            return c - uint8(bytes1("0"));
+        }
+        if (bytes1(c) >= bytes1("a") && bytes1(c) <= bytes1("f")) {
+            return 10 + c - uint8(bytes1("a"));
+        }
+        if (bytes1(c) >= bytes1("A") && bytes1(c) <= bytes1("F")) {
+            return 10 + c - uint8(bytes1("A"));
+        }
+        revert("fail");
+    }
+
+    // Convert an hexadecimal string to raw bytes
+    function fromHexToBytes32(string memory s)
+        public
+        pure
+        returns (bytes32 value)
+    {
+        bytes memory ss = bytes(s);
+        require(ss.length % 2 == 0); // length must be even
+        bytes memory r = new bytes(32);
+        for (uint256 i = 0; i < 32; ++i) {
+            r[i] = bytes1(
+                fromHexChar(uint8(ss[2 * i])) *
+                    16 +
+                    fromHexChar(uint8(ss[2 * i + 1]))
+            );
+        }
+
+        assembly {
+            value := mload(add(r, 32))
+        }
     }
 }
