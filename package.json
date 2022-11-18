@@ -5,7 +5,7 @@
     "deploy": "hardhat deploy",
     "deploy:mumbai:NftMarketplace": "hardhat deploy --network mumbai --tags NftMarketplace",
     "deploy:mumbai:VrfMint": "hardhat deploy --network mumbai --tags VrfMint",
-    "deploy:mumbai:AssetVaildator": "hardhat deploy --network mumbai --tags AssetVaildator",
+    "deploy:mumbai:AssetValidator": "hardhat deploy --network mumbai --tags AssetValidator",
     "verify:mumbai": "hardhat etherscan-verify --network mumbai"
   },
   "devDependencies": {

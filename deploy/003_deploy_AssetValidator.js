@@ -2,7 +2,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  await deploy("AssetVaildator", {
+  await deploy("AssetValidator", {
     from: deployer,
     log: true,
     args: [
@@ -11,4 +11,4 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   });
 };
 
-module.exports.tags = ["AssetVaildator."];
+module.exports.tags = ["AssetValidator"];

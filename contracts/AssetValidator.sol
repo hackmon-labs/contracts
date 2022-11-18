@@ -9,15 +9,16 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
 
-contract AssetValidator is ChainlinkClient, AutomationCompatibleInterface {
+contract AssetValidator is ChainlinkClient, AutomationCompatibleInterface,Ownable {
     event RequestUrl(string url, uint256 time);
-    event RequestRes(uint256 time,bytes32 root);
+    event RequestRes(uint256 time,string root);
     using Chainlink for Chainlink.Request;
 
     string private _url = "https://ap-jov.colyseus.dev/chain/get-root";
     uint256 private fee;
     bytes32 private jobId;
-    bytes32 public root;
+    bytes32 private _root;
+    string public  root;
     mapping(bytes32 => address) public requestParams;
 
     // update root internal
@@ -30,16 +31,29 @@ contract AssetValidator is ChainlinkClient, AutomationCompatibleInterface {
 
         setChainlinkToken(0x326C977E6efc84E512bB9C30f76E30c160eD06FB);
         setChainlinkOracle(0x40193c8518BB267228Fc409a613bDbD8eC5a97b3);
-        jobId = "ca98366cc7314957b8c012c72f05aeeb";
+        jobId = "7d80a6386ef543a3abb52817f6707e3b";
 
         fee = (1 * LINK_DIVISIBILITY) / 10;
     }
 
-    function fulfill(bytes32 _requestId, bytes32 _val)
+    function stringToBytes32(string memory source) public pure returns (bytes32 result) {
+        bytes memory tempEmptyStringTest = bytes(source);
+        if (tempEmptyStringTest.length == 0) {
+            return 0x0;
+        }
+
+        assembly {
+            result := mload(add(source, 32))
+        }
+    }   
+   
+
+    function fulfill(bytes32 _requestId, string memory _val)
         public
         recordChainlinkFulfillment(_requestId)
     {
-        root = _val;
+        _root =stringToBytes32(_val)  ;
+        root=_val;
         lastTimeStamp = block.timestamp;
         emit RequestRes(block.timestamp,_val);
 
@@ -91,6 +105,14 @@ contract AssetValidator is ChainlinkClient, AutomationCompatibleInterface {
         bytes32 leaf = keccak256(
             abi.encodePacked(msg.sender, coinAmount, boxAmount)
         );
-        valid = MerkleProof.verify(proof, root, leaf);
+        valid = MerkleProof.verify(proof, _root, leaf);
+    }
+
+    function withdrawLink() public onlyOwner {
+        LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
+        require(
+            link.transfer(msg.sender, link.balanceOf(address(this))),
+            "Unable to transfer"
+        );
     }
 }
