@@ -10,13 +10,14 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
 
 contract AssetValidator is ChainlinkClient, AutomationCompatibleInterface {
-    event RequestUrl(string url, address requester);
+    event RequestUrl(string url, uint256 time);
+    event RequestRes(uint256 time,bytes32 root);
     using Chainlink for Chainlink.Request;
 
     string private _url = "https://ap-jov.colyseus.dev/chain/get-root";
     uint256 private fee;
     bytes32 private jobId;
-    bytes32 private _root;
+    bytes32 public root;
     mapping(bytes32 => address) public requestParams;
 
     // update root internal
@@ -26,6 +27,9 @@ contract AssetValidator is ChainlinkClient, AutomationCompatibleInterface {
 
     constructor(uint256 interval_) {
         interval = interval_;
+
+        setChainlinkToken(0x326C977E6efc84E512bB9C30f76E30c160eD06FB);
+        setChainlinkOracle(0x40193c8518BB267228Fc409a613bDbD8eC5a97b3);
         jobId = "ca98366cc7314957b8c012c72f05aeeb";
 
         fee = (1 * LINK_DIVISIBILITY) / 10;
@@ -35,8 +39,10 @@ contract AssetValidator is ChainlinkClient, AutomationCompatibleInterface {
         public
         recordChainlinkFulfillment(_requestId)
     {
-        _root = _val;
+        root = _val;
         lastTimeStamp = block.timestamp;
+        emit RequestRes(block.timestamp,_val);
+
     }
 
     function checkUpkeep(
@@ -66,10 +72,14 @@ contract AssetValidator is ChainlinkClient, AutomationCompatibleInterface {
 
         req.add("get", _url);
 
-        emit RequestUrl(_url, msg.sender);
+        req.add("path", "root");
 
-        bytes32 requestId = sendChainlinkRequest(req, fee);
-        requestParams[requestId] = msg.sender;
+        int256 timesAmount = 1;
+        req.addInt("times", timesAmount);
+
+        emit RequestUrl(_url, block.timestamp);
+
+       sendChainlinkRequest(req, fee);
     }
 
     //
@@ -81,6 +91,6 @@ contract AssetValidator is ChainlinkClient, AutomationCompatibleInterface {
         bytes32 leaf = keccak256(
             abi.encodePacked(msg.sender, coinAmount, boxAmount)
         );
-        valid = MerkleProof.verify(proof, _root, leaf);
+        valid = MerkleProof.verify(proof, root, leaf);
     }
 }
