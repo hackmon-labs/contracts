@@ -15,14 +15,14 @@ contract AssetValidator is
     Ownable
 {
     event RequestUrl(string url, uint256 time);
-    event RequestRes(uint256 time, string root);
+    event RequestRes(uint256 time, bytes32 root);
     using Chainlink for Chainlink.Request;
 
     string private _url = "https://ap-jov.colyseus.dev/chain/get-root";
     uint256 private fee;
     bytes32 private jobId;
-    bytes32 private _root;
-    string public root;
+    bytes32 public _root;
+    // string public root;
     mapping(bytes32 => address) public requestParams;
 
     // update root internal
@@ -35,17 +35,17 @@ contract AssetValidator is
 
         setChainlinkToken(0x326C977E6efc84E512bB9C30f76E30c160eD06FB);
         setChainlinkOracle(0x40193c8518BB267228Fc409a613bDbD8eC5a97b3);
-        jobId = "7d80a6386ef543a3abb52817f6707e3b";
+        jobId = "7da2702f37fd48e5b1b9a5715e3509b6";
 
         fee = (1 * LINK_DIVISIBILITY) / 10;
     }
 
-    function fulfill(bytes32 _requestId, string memory _val)
+    function fulfill(bytes32 _requestId, bytes32 _val)
         public
         recordChainlinkFulfillment(_requestId)
     {
-        _root = fromHexToBytes32(_val);
-        root = _val;
+        _root = _val;
+        // root = _val;
         lastTimeStamp = block.timestamp;
         emit RequestRes(block.timestamp, _val);
     }
@@ -79,8 +79,6 @@ contract AssetValidator is
 
         req.add("path", "root");
 
-        int256 timesAmount = 1;
-        req.addInt("times", timesAmount);
 
         emit RequestUrl(_url, block.timestamp);
 
@@ -89,12 +87,13 @@ contract AssetValidator is
 
     //
     function verify(
+        address user,
         uint256 coinAmount,
         uint256 boxAmount,
         bytes32[] calldata proof
     ) external view returns (bool valid) {
         bytes32 leaf = keccak256(
-            abi.encodePacked(msg.sender, coinAmount, boxAmount)
+            abi.encodePacked(user, coinAmount, boxAmount)
         );
         valid = MerkleProof.verify(proof, _root, leaf);
     }
